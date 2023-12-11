@@ -1,0 +1,545 @@
+---
+swagger: "2.0"
+info:
+  description: "Specification for ElectrodoDoc REST API"
+  version: "1.0.0"
+  title: "ElectrodoDoc"
+host: "localhost:1823"
+basePath: "/api/v1"
+schemes:
+  - "http"
+paths:
+  /user:
+    post:
+      tags:
+        - "user"
+      summary: "Create user"
+      description: "After registration user receive Certificate for Fabric CA"
+      operationId: "CreateUser"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/createUser"
+      responses:
+        "201":
+          description: "Certificate"
+        "409":
+          description: "User already exist"
+        "422":
+          description: "Invalid user data"
+      x-swagger-router-controller: "User"
+    put:
+      tags:
+        - "user"
+      summary: "Update user password"
+      description: "Changing user credentials"
+      operationId: "ChangeUser"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/changePassword"
+      responses:
+        "200":
+          description: "Successfully"
+        "203":
+          description: "Not Authorized"
+        "422":
+          description: "Invalid entity"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "User"
+  /user/auth:
+    post:
+      tags:
+        - "user"
+      summary: "Login user into the system"
+      description: "Authentication for users to get in to the system and receive JWT\
+        \ token"
+      operationId: "Login"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/login"
+      responses:
+        "200":
+          description: "JWT token"
+        "400":
+          description: "Incorrect password"
+        "403":
+          description: "Bad certificate or private key"
+        "404":
+          description: "User not fount"
+        "422":
+          description: "Required Email or Username"
+      x-swagger-router-controller: "User"
+  /user/logout:
+    delete:
+      tags:
+        - "user"
+      summary: "Logout user from the system"
+      description: "Manually exit from the system"
+      operationId: "Logout"
+      produces:
+        - "application/json"
+      parameters: []
+      responses:
+        "200":
+          description: "Successfully"
+        "203":
+          description: "Not Authorized"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "User"
+  /folder/{hash}:
+    get:
+      tags:
+        - "file_system"
+      summary: "Get folder"
+      description: "Getting folder means that user will receive the contents of the\
+        \ folder (files and folders)"
+      operationId: "getFolder"
+      parameters:
+        - name: "hash"
+          in: "path"
+          description: "The folder hash"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "Contents of the folder"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "Folder not found"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /folder:
+    post:
+      tags:
+        - "file_system"
+      summary: "Create folder"
+      description: "Creating folder by user"
+      operationId: "createFolder"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/createFolder"
+      responses:
+        "201":
+          description: "Created folder"
+        "203":
+          description: "Not Authorized"
+        "409":
+          description: "Folder with this name already exist"
+        "422":
+          description: "Invalid folder/parent folder name supplied"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /file/{hash}/{cid}:
+    get:
+      tags:
+        - "file_system"
+      summary: "Download file"
+      description: "Downloading file from current folder"
+      operationId: "downloadFile"
+      produces:
+        - "application/json"
+        - "image/png"
+        - "image/gif"
+        - "image/jpeg"
+        - "multipart/form-data"
+        - "application/pdf"
+      parameters:
+        - name: "hash"
+          in: "path"
+          description: "The file hash"
+          required: true
+          type: "string"
+        - name: "cid"
+          in: "path"
+          description: "The file version"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "File download"
+          headers:
+            X-Content-Type-Options:
+              type: "string"
+              description: "Name of file"
+          schema:
+            type: "file"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "File not found"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /file:
+    post:
+      tags:
+        - "file_system"
+      summary: "Upload file"
+      description: "Uploading file in current folder"
+      operationId: "uploadFile"
+      consumes:
+        - "multipart/form-data"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "name"
+          in: "formData"
+          required: true
+          type: "string"
+        - name: "parentFolder"
+          in: "formData"
+          required: true
+          type: "string"
+        - name: "file"
+          in: "formData"
+          description: "File to upload."
+          required: true
+          type: "file"
+      responses:
+        "200":
+          description: "Updated folder with this file"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "Folder not exist"
+        "422":
+          description: "Invalid file/parent folder name supplied"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+    put:
+      tags:
+        - "file_system"
+      summary: "Update file"
+      description: "Update existing file"
+      operationId: "updateFile"
+      consumes:
+        - "multipart/form-data"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "hash"
+          in: "formData"
+          required: true
+          type: "string"
+        - name: "file"
+          in: "formData"
+          description: "File to upload."
+          required: true
+          type: "file"
+      responses:
+        "200":
+          description: "Updated folder with this file"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "Folder not exist"
+        "422":
+          description: "Invalid file hash supplied"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /versions/{hash}:
+    get:
+      tags:
+        - "file_system"
+      summary: "Versions of file"
+      description: "Get all existing versions of file"
+      operationId: "versions"
+      parameters:
+        - name: "hash"
+          in: "path"
+          description: "The folder or file name"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "Versions of file"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "File with this hash not found"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /tree:
+    get:
+      tags:
+        - "file_system"
+      summary: "Get folders tree"
+      description: "Get tree of folders and shared folders of user"
+      operationId: "tree"
+      parameters: []
+      responses:
+        "200":
+          description: "Folders and shared folders"
+        "203":
+          description: "Not Authorized"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /search/{name}:
+    get:
+      tags:
+        - "file_system"
+      summary: "Search"
+      description: "Search folders and files means that user will receive folder or\
+        \ file if exist"
+      operationId: "search"
+      parameters:
+        - name: "name"
+          in: "path"
+          description: "The folder or file name"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "Hash of the folder or file"
+        "203":
+          description: "Not Authorized"
+        "404":
+          description: "Not found"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "FileSystem"
+  /permissions:
+    put:
+      tags:
+        - "permissions"
+      summary: "Change permissions"
+      description: "After change permissions target user get selected permissions\
+        \ for file or folder"
+      operationId: "ChangePermissions"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/changePermissions"
+      responses:
+        "200":
+          description: "Permissions have been changed"
+        "203":
+          description: "Not Authorized"
+        "403":
+          description: "Forbidden"
+        "422":
+          description: "Invalid data"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "Permissions"
+    delete:
+      tags:
+        - "permissions"
+      summary: "Revoke permissions"
+      description: "After revoke permissions target user not get permissions for file\
+        \ or folder"
+      operationId: "RevokePermissions"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/revokePermissions"
+      responses:
+        "200":
+          description: "Permissions have been changed"
+        "203":
+          description: "Not Authorized"
+        "403":
+          description: "Forbidden"
+        "422":
+          description: "Invalid data"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "Permissions"
+  /voting:
+    post:
+      tags:
+        - "voting"
+      summary: "Create voting"
+      description: "Owner can create voting on file"
+      operationId: "createVoting"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/voting"
+      responses:
+        "201":
+          description: "Successfully created"
+        "203":
+          description: "Not Authorized"
+        "403":
+          description: "User does not have permissions"
+        "404":
+          description: "File not exist"
+        "422":
+          description: "Invalid data supplied"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "Voting"
+    put:
+      tags:
+        - "voting"
+      summary: "User vote"
+      description: "User can vote in file if have permissions"
+      operationId: "updateVoting"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/vote"
+      responses:
+        "200":
+          description: "Successfully vote"
+        "203":
+          description: "Not Authorized"
+        "403":
+          description: "User does not have permissions"
+        "409":
+          description: "User already voted"
+        "422":
+          description: "Invalid data"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "Voting"
+    get:
+      tags:
+        - "voting"
+      summary: "Get voting list"
+      description: "User can get voting list of owned files or shared files"
+      operationId: "getVoting"
+      produces:
+        - "application/json"
+      parameters: []
+      responses:
+        "200":
+          description: "Voting list"
+        "203":
+          description: "Not Authorized"
+        "422":
+          description: "Invalid data"
+      security:
+        - Bearer: []
+      x-swagger-router-controller: "Voting"
+securityDefinitions:
+  Bearer:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+definitions:
+  changePassword:
+    type: "object"
+    properties:
+      oldPassword:
+        type: "string"
+      newPassword:
+        type: "string"
+  createFolder:
+    properties:
+      name:
+        type: "string"
+      parentFolder:
+        type: "string"
+  createUser:
+    properties:
+      login:
+        type: "string"
+      email:
+        type: "string"
+      password:
+        type: "string"
+      privateKey:
+        type: "string"
+      CSR:
+        type: "string"
+  login:
+    properties:
+      login:
+        type: "string"
+      password:
+        type: "string"
+      certificate:
+        type: "string"
+      privateKey:
+        type: "string"
+  changePermissions:
+    properties:
+      email:
+        type: "string"
+      hash:
+        type: "string"
+      permission:
+        type: "string"
+        enum:
+          - "owner"
+          - "write"
+          - "read"
+  revokePermissions:
+    properties:
+      email:
+        type: "string"
+      hash:
+        type: "string"
+      permission:
+        type: "string"
+        enum:
+          - "unwrite"
+          - "unread"
+  vote:
+    properties:
+      hash:
+        type: "string"
+      variant:
+        type: "string"
+  voting:
+    properties:
+      hash:
+        type: "string"
+      dueDate:
+        type: "string"
+      variants:
+        type: "array"
+        items:
+          type: "string"
+      excludedUsers:
+        type: "array"
+        items:
+          type: "string"
+      description:
+        type: "string"
