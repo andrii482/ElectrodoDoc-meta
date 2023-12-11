@@ -1,0 +1,9 @@
+.idea
+node_modules
+storage
+coverage
+.nyc_output
+package-lock.json
+.github/workflows
+mochawesome-report
+compose
